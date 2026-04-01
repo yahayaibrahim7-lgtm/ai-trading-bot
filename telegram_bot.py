@@ -1,53 +1,37 @@
 import requests
 import time
+import os
+
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 API_URL = "https://ai-trading-backend-nx50.onrender.com/signal"
-ADMIN_TOKEN = "my-admin-token"  # same as env
 
+def send_signal():
+    try:
+        res = requests.get(API_URL)
+        data = res.json()
 
-def get_users():
-    res = requests.get(
-        "http://127.0.0.1:5000/admin/users",
-        headers={"Authorization": ADMIN_TOKEN}
-    )
-    return res.json()
+        message = "📊 AI SIGNALS\n\n"
 
+        for signal in data:
+            message += f"""
+Pair: {signal['pair']}
+Signal: {signal['signal']}
+Confidence: {signal['confidence']}
 
-def send_message(chat_id, message):
-    BOT_TOKEN = "YOUR_BOT_TOKEN"
+"""
 
-    requests.post(
-        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-        data={
-            "chat_id": chat_id,
-            "text": message
-        }
-    )
+        message += "🔥 Powered by AI Bot"
 
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+        requests.post(url, data={"chat_id": CHAT_ID, "text": message})
 
-def run_bot():
-    users = get_users()
+        print("Signals sent!")
 
-    for user in users:
-        if user["vip"] and user["chat_id"]:
-            try:
-                res = requests.get(API_URL, headers={
-                    "Authorization": "USER_TOKEN_HERE"
-                })
-
-                signals = res.json()
-
-                msg = "📊 VIP AI SIGNALS\n\n"
-
-                for s in signals:
-                    msg += f"{s['pair']} → {s['signal']} ({s['confidence']})\n"
-
-                send_message(user["chat_id"], msg)
-
-            except Exception as e:
-                print("Error:", e)
-
+    except Exception as e:
+        print("Error:", e)
 
 while True:
-    run_bot()
-    time.sleep(300)
+    send_signal()
+    time.sleep(60)
