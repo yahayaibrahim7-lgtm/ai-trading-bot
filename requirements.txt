@@ -7,4 +7,4 @@ pandas
 requests
 schedule
 python-telegram-bot
-python-doteny
+python-dotenv
