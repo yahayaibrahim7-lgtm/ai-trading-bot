@@ -359,3 +359,22 @@ def internal_error(e):
 if __name__ == "__main__":
     # debug=True must never be True in production
     app.run(debug=os.environ.get("FLASK_DEBUG", "false").lower() == "true")
+# imports
+from flask import Flask
+
+app = Flask(_name_)
+
+# routes
+@app.route("/")
+def home():
+    return "API running"
+
+# MORE ROUTES...
+# /login
+# /signal
+# /admin
+import os
+
+if _name_ == "_main_":
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
