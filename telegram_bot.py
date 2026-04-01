@@ -94,4 +94,4 @@ def send_signal():
 
 while True:
     send_signal()
-    time.sleep(60)
+    time.sleep(180)
