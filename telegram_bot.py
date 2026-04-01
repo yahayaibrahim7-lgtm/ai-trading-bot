@@ -1,54 +1,46 @@
+import MetaTrader5 as mt5
 import requests
 import time
 import os
-from PIL import Image, ImageDraw, ImageFont
+import matplotlib.pyplot as plt
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 API_URL = "https://ai-trading-backend-nx50.onrender.com/signal"
 
-# 🔥 Get LIVE price
-def get_live_price(pair):
-    try:
-        base = pair[:3]
-        quote = pair[3:]
-        url = f"https://api.exchangerate.host/latest?base={base}&symbols={quote}"
-        res = requests.get(url).json()
-        return res["rates"][quote]
-    except:
-        return None
+# 🔥 CONNECT TO MT5
+if not mt5.initialize():
+    print("MT5 initialization failed")
+    quit()
+
+print("MT5 connected ✅")
 
 
-# 🖼️ CREATE SIGNAL IMAGE
-def create_signal_image(pair, direction, entry, tp, sl, confidence):
-    width, height = 800, 500
-    img = Image.new("RGB", (width, height), color=(10, 20, 40))
-    draw = ImageDraw.Draw(img)
+# 🔥 GET REAL FOREX PRICE
+def get_price(symbol="EURUSD"):
+    tick = mt5.symbol_info_tick(symbol)
+    return tick.bid
 
-    # Optional font (fallback if not found)
-    try:
-        font_title = ImageFont.truetype("arial.ttf", 50)
-        font_text = ImageFont.truetype("arial.ttf", 30)
-    except:
-        font_title = None
-        font_text = None
 
-    # Title
-    draw.text((50, 40), f"{pair}", fill="white", font=font_title)
+# 🎯 Generate REAL chart
+def generate_chart(symbol, price, tp, sl):
+    rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M1, 0, 50)
 
-    # Signal
-    color = "green" if direction == "BUY" else "red"
-    draw.text((50, 120), f"{direction}", fill=color, font=font_title)
+    closes = [r.close for r in rates]
 
-    # Details
-    draw.text((50, 220), f"Entry: {entry}", fill="white", font=font_text)
-    draw.text((50, 270), f"TP: {tp}", fill="white", font=font_text)
-    draw.text((50, 320), f"SL: {sl}", fill="white", font=font_text)
-    draw.text((50, 370), f"Confidence: {confidence}%", fill="white", font=font_text)
+    plt.figure()
+    plt.plot(closes)
 
-    file_path = "signal.png"
-    img.save(file_path)
+    plt.axhline(tp, linestyle='--')
+    plt.axhline(sl, linestyle='--')
+    plt.axhline(price)
+
+    plt.title(f"{symbol} MT5 LIVE")
+
+    file_path = f"{symbol}.png"
+    plt.savefig(file_path)
+    plt.close()
 
     return file_path
 
@@ -63,11 +55,8 @@ def send_signal():
             direction = signal.get("signal", "BUY")
             confidence = signal.get("confidence", 0)
 
-            price = get_live_price(pair)
-            if price is None:
-                continue
+            price = get_price(pair)
 
-            # 🔥 SL/TP logic
             if direction == "BUY":
                 tp = round(price + 0.0020, 5)
                 sl = round(price - 0.0010, 5)
@@ -75,18 +64,29 @@ def send_signal():
                 tp = round(price - 0.0020, 5)
                 sl = round(price + 0.0010, 5)
 
-            # 🖼️ Generate image
-            image_path = create_signal_image(pair, direction, price, tp, sl, confidence)
+            chart = generate_chart(pair, price, tp, sl)
+
+            caption = f"""
+📊 MT5 LIVE SIGNAL
+
+📌 {pair}
+💰 Entry: {price}
+➡️ {direction}
+
+🎯 TP: {tp}
+🛑 SL: {sl}
+📊 Confidence: {confidence}%
+"""
 
             url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
 
-            with open(image_path, "rb") as photo:
-                requests.post(url, files={"photo": photo}, data={
+            with open(chart, "rb") as photo:
+                requests.post(url, data={
                     "chat_id": CHAT_ID,
-                    "caption": f"{pair} {direction} Signal 🚀"
-                })
+                    "caption": caption
+                }, files={"photo": photo})
 
-        print("Signal images sent!")
+            print("MT5 signal sent!")
 
     except Exception as e:
         print("Error:", e)
