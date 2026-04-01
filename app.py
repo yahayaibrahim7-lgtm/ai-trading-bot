@@ -356,7 +356,11 @@ def internal_error(e):
 # ==============================
 # RUN
 # ==============================
+import os
+
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
     # debug=True must never be True in production
     app.run(debug=os.environ.get("FLASK_DEBUG", "false").lower() == "true")
 # imports
@@ -375,6 +379,6 @@ def home():
 # /admin
 import os
 
-if _name_ == "_main_":
+if __name_ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
