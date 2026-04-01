@@ -12,20 +12,21 @@ def send_signal():
         res = requests.get(API_URL)
         data = res.json()
 
-        message = "📊 AI SIGNALS\n\n"
+       message = "📊 AI SIGNALS\n\n"
 
-        for signal in data:
-            message += f"""
-Pair: {signal['pair']}
-Signal: {signal['signal']}
-Confidence: {signal['confidence']}
+for signal in data:
+    message += f"📌 {signal['pair']}\n"
+    message += f"➡️ Signal: {signal['signal']}\n"
+    message += f"📊 Confidence: {signal['confidence']}\n\n"
 
-"""
-
-        message += "🔥 Powered by AI Bot"
+message += "🚀 Powered by AI Trading Bot"
 
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-        requests.post(url, data={"chat_id": CHAT_ID, "text": message})
+        requests.post(url, data={
+    "chat_id": CHAT_ID,
+    "text": message,
+    "parse_mode": "Markdown"
+})
 
         print("Signals sent!")
 
