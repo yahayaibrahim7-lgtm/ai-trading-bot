@@ -293,8 +293,6 @@ def save_chat_id():
 SUPPORTED_PAIRS = ["USDJPY", "EURUSD", "XAUUSD"]
 
 @app.route("/signal")
-@require_auth
-@require_vip
 def signal():
     results = [get_signal(pair) for pair in SUPPORTED_PAIRS]
     return jsonify(results)
