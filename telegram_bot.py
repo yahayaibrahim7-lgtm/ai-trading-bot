@@ -10,9 +10,6 @@ CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 API_URL = "https://ai-trading-backend-nx50.onrender.com/signal"
 
-# 🔥 IMPORTANT: CHANGE THIS TO YOUR BROKER SYMBOL
-SYMBOL = "USDJP.m"   # e.g. USDJPY.m, EURUSD.m etc
-
 
 # ================= CONNECT MT5 =================
 if not mt5.initialize():
@@ -25,34 +22,57 @@ print("MT5 connected ✅")
 # ================= GET PRICE =================
 def get_price(symbol):
     if not mt5.symbol_select(symbol, True):
-        print(f"❌ Failed to select {symbol}")
         return None
 
     tick = mt5.symbol_info_tick(symbol)
 
     if tick is None:
-        print(f"❌ No tick data for {symbol}")
         return None
 
     return tick.bid
+
+
+# ================= AUTO SYMBOL MAPPING (FINAL FIX) =================
+def get_valid_symbol(pair):
+    possible_symbols = [
+        pair,
+        pair + "m",
+        pair + ".m",     # ✅ YOUR BROKER FORMAT
+        pair + ".pro",
+        pair + ".a",
+        pair + "_i"
+    ]
+
+    for sym in possible_symbols:
+        price = get_price(sym)
+        if price is not None:
+            print(f"✅ Using symbol: {sym}")
+            return sym, price
+
+    print(f"❌ No valid symbol found for {pair}")
+    return None, None
 
 
 # ================= GENERATE CHART =================
 def generate_chart(symbol, price, tp, sl):
     rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M1, 0, 50)
 
-    if rates is None:
+    if rates is None or len(rates) == 0:
+        print("No rate data...")
         return None
 
-    closes = [r.close for r in rates]
+    # ✅ FIX HERE
+    closes = [r['close'] for r in rates]
+
+    import matplotlib.pyplot as plt
 
     plt.figure()
     plt.plot(closes)
 
-    # Draw lines
-    plt.axhline(price, linestyle='-')   # Entry
-    plt.axhline(tp, linestyle='--')     # TP
-    plt.axhline(sl, linestyle='--')     # SL
+    # Entry, TP, SL
+    plt.axhline(price, linestyle='-')
+    plt.axhline(tp, linestyle='--')
+    plt.axhline(sl, linestyle='--')
 
     plt.title(f"{symbol} MT5 LIVE")
 
@@ -71,19 +91,18 @@ def send_signal():
 
         for signal in data:
 
+            pair = signal.get("pair", "EURUSD")
             direction = signal.get("signal", "BUY")
             confidence = signal.get("confidence", 0)
 
-            pair = SYMBOL   # 🔥 FORCE correct symbol
-
-            # GET REAL PRICE
-            price = get_price(pair)
+            # 🔥 AUTO SYMBOL DETECTION
+            symbol, price = get_valid_symbol(pair)
 
             if price is None:
                 print("Skipping due to no price...")
                 continue
 
-            # CALCULATE TP / SL
+            # TP / SL
             if direction == "BUY":
                 tp = round(price + 0.0020, 5)
                 sl = round(price - 0.0010, 5)
@@ -91,8 +110,8 @@ def send_signal():
                 tp = round(price - 0.0020, 5)
                 sl = round(price + 0.0010, 5)
 
-            # GENERATE CHART
-            chart = generate_chart(pair, price, tp, sl)
+            # Chart
+            chart = generate_chart(symbol, price, tp, sl)
 
             if chart is None:
                 print("Chart failed...")
@@ -101,7 +120,7 @@ def send_signal():
             caption = f"""
 📊 MT5 LIVE SIGNAL
 
-📌 {pair}
+📌 {symbol}
 💰 Entry: {price}
 ➡️ {direction}
 
