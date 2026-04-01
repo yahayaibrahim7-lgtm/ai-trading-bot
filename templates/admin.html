@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Dashboard</title>
+</head>
+<body>
+
+<h2>Users</h2>
+<ul id="users"></ul>
+
+<script>
+async function loadUsers() {
+  let res = await fetch("/admin/users");
+  let data = await res.json();
+
+  let list = document.getElementById("users");
+
+  data.forEach(user => {
+    let li = document.createElement("li");
+    li.innerText = user.email + " | VIP: " + user.vip;
+    list.appendChild(li);
+  });
+}
+
+loadUsers();
+</script>
+
+</body>
+</html>
+@app.route("/admin")
+def admin():
+    return render_template("admin.html")
