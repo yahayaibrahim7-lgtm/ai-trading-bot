@@ -1,7 +1,7 @@
 import requests
 import time
 
-API_URL = "http://127.0.0.1:5000/signal"
+API_URL = "https://ai-trading-backend-nx50.onrender.com/signal"
 ADMIN_TOKEN = "my-admin-token"  # same as env
 
 
