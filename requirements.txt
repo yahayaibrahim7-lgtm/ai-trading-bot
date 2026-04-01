@@ -4,7 +4,6 @@ sqlalchemy
 passlib
 pyjwt
 pandas
-MetaTrader5
 requests
 schedule
 python-telegram-bot
